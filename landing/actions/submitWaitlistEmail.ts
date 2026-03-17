@@ -20,7 +20,7 @@ function hasSupabaseEnv(): boolean {
 }
 
 async function upsertLocalSubmission(name: string, email: string): Promise<void> {
-  const filePath = path.join(process.cwd(), "landing", "mock", "waitlist.json");
+  const filePath = path.join("/tmp", "waitlist.json");
   await fs.mkdir(path.dirname(filePath), { recursive: true });
 
   let existing: WaitlistRecord[] = [];
@@ -85,9 +85,13 @@ export async function submitWaitlistEmailAction(
     return { status: "error", message: "Drop a valid email so we can lock your spot." };
   }
 
-  const savedToSupabase = await insertSupabaseWaitlist(name, email);
-  if (savedToSupabase) {
-    return { status: "success", message: SUCCESS_MESSAGE };
+  try {
+    const savedToSupabase = await insertSupabaseWaitlist(name, email);
+    if (savedToSupabase) {
+      return { status: "success", message: SUCCESS_MESSAGE };
+    }
+  } catch {
+    // Supabase unavailable — fall through to local backup
   }
 
   try {
