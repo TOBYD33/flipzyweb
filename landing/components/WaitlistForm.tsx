@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useFormStatus } from "react-dom";
-import { initialEmailWaitlistState, submitWaitlistEmailAction } from "@/landing/actions/submitWaitlistEmail";
+import { submitWaitlistEmailAction } from "@/landing/actions/submitWaitlistEmail";
+import { initialEmailWaitlistState } from "@/landing/actions/waitlistTypes";
 
 function AppleIcon() {
   return (
@@ -98,19 +99,7 @@ function JoinButton() {
 
 export function WaitlistForm() {
   const [state, formAction] = useActionState(submitWaitlistEmailAction, initialEmailWaitlistState);
-  const [modalPlatform, setModalPlatform] = useState<"iOS" | "Android" | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  function handleJoinWaitlistFromModal() {
-    setModalPlatform(null);
-    nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    nameInputRef.current?.focus();
-  }
 
   return (
     <div id="waitlist-form" className="mt-5 sm:mt-6">
@@ -149,7 +138,31 @@ export function WaitlistForm() {
       )}
 
       {state.status === "error" ? <p className="mt-2 text-sm font-medium text-red-600">{state.message}</p> : null}
+    </div>
+  );
+}
 
+export function DownloadButtons() {
+  const [modalPlatform, setModalPlatform] = useState<"iOS" | "Android" | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  function handleJoinWaitlistFromModal() {
+    setModalPlatform(null);
+
+    const nameField = document.getElementById("name");
+    nameField?.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    if (nameField instanceof HTMLInputElement) {
+      nameField.focus();
+    }
+  }
+
+  return (
+    <>
       <div className="mt-3 flex flex-col gap-2.5 sm:flex-row">
         <StoreButton label="Download Now" icon={<AppleIcon />} onClick={() => setModalPlatform("iOS")} />
         <StoreButton label="Download Now" icon={<AndroidIcon />} onClick={() => setModalPlatform("Android")} />
@@ -165,6 +178,6 @@ export function WaitlistForm() {
             document.body
           )
         : null}
-    </div>
+    </>
   );
 }

@@ -3,15 +3,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-
-export type EmailWaitlistState = {
-  status: "idle" | "success" | "error";
-  message?: string;
-};
-
-export const initialEmailWaitlistState: EmailWaitlistState = {
-  status: "idle"
-};
+import type { EmailWaitlistState } from "./waitlistTypes";
 
 const SUCCESS_MESSAGE = "You\u2019re in. We\u2019ll hit you up when Flipzy drops \ud83d\udc9c";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -64,41 +56,16 @@ async function upsertLocalSubmission(name: string, email: string): Promise<void>
   await fs.writeFile(filePath, JSON.stringify(existing, null, 2));
 }
 
-async function insertSupabaseWaitlist(email: string): Promise<boolean> {
+async function insertSupabaseWaitlist(name: string, email: string): Promise<boolean> {
   if (!hasSupabaseEnv()) {
     return false;
   }
 
   const supabase = getSupabaseServerClient();
+  const { error } = await supabase.from("waitlist").insert({ name, email });
 
-  const { error } = await supabase.from("waitlist").insert({ email });
-
-  if (!error) {
-    return true;
-  }
-
-  if (error.code === "23505") {
-    return true;
-  }
-
-  if (error.code === "42P01") {
-    const rpc = await supabase.rpc("signup_waitlist", {
-      p_email: email,
-      p_university: null,
-      p_country: null,
-      p_referred_by: null
-    });
-
-    if (!rpc.error) {
-      return true;
-    }
-
-    if (rpc.error.code === "23505") {
-      return true;
-    }
-
-    return false;
-  }
+  if (!error) return true;
+  if (error.code === "23505") return true; // duplicate — already on list
 
   return false;
 }
@@ -108,42 +75,25 @@ export async function submitWaitlistEmailAction(
   formData: FormData
 ): Promise<EmailWaitlistState> {
   const name = String(formData.get("name") ?? "").trim();
-  const email = String(formData.get("email") ?? "")
-    .trim()
-    .toLowerCase();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
 
   if (!name) {
-    return {
-      status: "error",
-      message: "Add your name so we know who just grabbed a spot."
-    };
+    return { status: "error", message: "Add your name so we know who just grabbed a spot." };
   }
 
   if (!EMAIL_REGEX.test(email)) {
-    return {
-      status: "error",
-      message: "Drop a valid email so we can lock your spot."
-    };
+    return { status: "error", message: "Drop a valid email so we can lock your spot." };
   }
 
-  const savedToSupabase = await insertSupabaseWaitlist(email);
+  const savedToSupabase = await insertSupabaseWaitlist(name, email);
   if (savedToSupabase) {
-    return {
-      status: "success",
-      message: SUCCESS_MESSAGE
-    };
+    return { status: "success", message: SUCCESS_MESSAGE };
   }
 
   try {
     await upsertLocalSubmission(name, email);
-    return {
-      status: "success",
-      message: SUCCESS_MESSAGE
-    };
+    return { status: "success", message: SUCCESS_MESSAGE };
   } catch {
-    return {
-      status: "error",
-      message: "Could not save right now. Try again in a few seconds."
-    };
+    return { status: "error", message: "Could not save right now. Try again in a few seconds." };
   }
 }

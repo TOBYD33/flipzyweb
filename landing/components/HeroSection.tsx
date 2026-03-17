@@ -2,7 +2,7 @@ import Image from "next/image";
 import { LandingFooter } from "@/landing/components/LandingFooter";
 import { RotatingHeroWord } from "@/landing/components/RotatingHeroWord";
 import { StatsRow } from "@/landing/components/StatsRow";
-import { WaitlistForm } from "@/landing/components/WaitlistForm";
+import { DownloadButtons, WaitlistForm } from "@/landing/components/WaitlistForm";
 import { PhoneMock } from "@/landing/components/PhoneMock";
 
 export function HeroSection() {
@@ -42,10 +42,19 @@ export function HeroSection() {
           </p>
 
           <WaitlistForm />
-          <StatsRow />
+          <div className="hidden lg:block">
+            <DownloadButtons />
+            <StatsRow />
+          </div>
+
+          <div className="mt-4 lg:hidden">
+            <PhoneMock />
+            <DownloadButtons />
+            <StatsRow />
+          </div>
         </div>
 
-        <div className="relative z-10 flex items-center justify-center">
+        <div className="relative z-10 hidden items-center justify-center lg:flex">
           <PhoneMock />
         </div>
       </div>
