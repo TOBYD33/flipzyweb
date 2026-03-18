@@ -1,5 +1,3 @@
-"use server";
-
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -74,6 +72,7 @@ export async function submitWaitlistEmailAction(
   _previousState: EmailWaitlistState,
   formData: FormData
 ): Promise<EmailWaitlistState> {
+  "use server";
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
 
