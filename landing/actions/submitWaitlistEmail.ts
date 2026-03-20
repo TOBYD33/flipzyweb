@@ -1,8 +1,8 @@
 "use server";
 
-import { createClient } from "@supabase/supabase-js";
 import type { EmailWaitlistState } from "./waitlistTypes";
 
+const SUPABASE_URL = "https://gkaortmgcfezkdlukvxo.supabase.co";
 const SUCCESS_MESSAGE = "You\u2019re in. We\u2019ll hit you up when Flipzy drops \ud83d\udc9c";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -22,15 +22,23 @@ export async function submitWaitlistEmailAction(
   }
 
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+    const apiKey = serviceKey || anonKey;
 
-    const { error } = await supabase.from("waitlist").insert({ name, email });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/waitlist`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": apiKey,
+        "Authorization": `Bearer ${apiKey}`,
+        "Prefer": "return=minimal",
+      },
+      body: JSON.stringify({ name, email }),
+    });
 
-    if (!error || error.code === "23505") {
+    // 201 = created, 409 = duplicate (already signed up) — both are fine
+    if (res.status === 201 || res.status === 409) {
       return { status: "success", message: SUCCESS_MESSAGE };
     }
 
